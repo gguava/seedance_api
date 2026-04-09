@@ -44,6 +44,7 @@ export default function Home() {
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionType, setMentionType] = useState<"图片" | "视频" | "音频">("图片");
+  const [mentionFilter, setMentionFilter] = useState<"全部" | "图片" | "视频" | "音频">("全部");
   const [mentionCursorPos, setMentionCursorPos] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -306,12 +307,16 @@ export default function Home() {
         // 检测类型：图片、视频、音频
         if (textAfterAt.startsWith("图片")) {
           setMentionType("图片");
+          setMentionFilter("图片");
         } else if (textAfterAt.startsWith("视频")) {
           setMentionType("视频");
+          setMentionFilter("视频");
         } else if (textAfterAt.startsWith("音频")) {
           setMentionType("音频");
+          setMentionFilter("音频");
         } else {
           setMentionType("图片"); // 默认
+          setMentionFilter("全部"); // 默认显示全部类型
         }
         setShowMentionDropdown(true);
         return;
@@ -717,65 +722,86 @@ export default function Home() {
                 placeholder="输入描述"
               />
               {showMentionDropdown && (
-                <div className="absolute z-10 mt-1 w-64 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg max-h-60 overflow-auto">
-                  {mentionType === "图片" && images
-                    .map((img, idx) => ({ img, idx }))
-                    .filter(({ img, idx }) => img.url && `图片${idx + 1}`.includes(mentionQuery))
-                    .map(({ img, idx }) => (
+                <div className="absolute z-10 mt-1 w-80 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg">
+                  <div className="flex border-b border-zinc-200 dark:border-zinc-700">
+                    {(["全部", "图片", "视频", "音频"] as const).map((type) => (
                       <button
-                        key={`img-${idx}`}
+                        key={type}
                         type="button"
-                        onClick={() => insertMention(idx, "图片")}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMentionFilter(type);
+                        }}
+                        className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                          mentionFilter === type
+                            ? "text-zinc-900 dark:text-zinc-100 border-b-2 border-zinc-900 dark:border-zinc-100"
+                            : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                        }`}
                       >
-                        <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0">
-                          <Image src={img.preview} alt="" fill className="object-cover" />
-                        </div>
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                          图片 {idx + 1}
-                        </span>
+                        {type}
                       </button>
                     ))}
-                  {mentionType === "视频" && videos
-                    .map((vid, idx) => ({ vid, idx }))
-                    .filter(({ vid, idx }) => vid.url && `视频${idx + 1}`.includes(mentionQuery))
-                    .map(({ idx }) => (
-                      <button
-                        key={`vid-${idx}`}
-                        type="button"
-                        onClick={() => insertMention(idx, "视频")}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
-                      >
-                        <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0 bg-zinc-200 flex items-center justify-center">
-                          <svg className="h-5 w-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                          视频 {idx + 1}
-                        </span>
-                      </button>
-                    ))}
-                  {mentionType === "音频" && audios
-                    .map((aud, idx) => ({ aud, idx }))
-                    .filter(({ aud, idx }) => aud.url && `音频${idx + 1}`.includes(mentionQuery))
-                    .map(({ idx }) => (
-                      <button
-                        key={`aud-${idx}`}
-                        type="button"
-                        onClick={() => insertMention(idx, "音频")}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
-                      >
-                        <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0 bg-zinc-200 flex items-center justify-center">
-                          <svg className="h-5 w-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                          </svg>
-                        </div>
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                          音频 {idx + 1}
-                        </span>
-                      </button>
-                    ))}
+                  </div>
+                  <div className="max-h-60 overflow-auto">
+                    {(mentionFilter === "全部" || mentionFilter === "图片") && images
+                      .map((img, idx) => ({ img, idx }))
+                      .filter(({ img, idx }) => img.url && `图片${idx + 1}`.includes(mentionQuery))
+                      .map(({ img, idx }) => (
+                        <button
+                          key={`img-${idx}`}
+                          type="button"
+                          onClick={() => insertMention(idx, "图片")}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
+                        >
+                          <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0">
+                            <Image src={img.preview} alt="" fill className="object-cover" />
+                          </div>
+                          <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                            图片 {idx + 1}
+                          </span>
+                        </button>
+                      ))}
+                    {(mentionFilter === "全部" || mentionFilter === "视频") && videos
+                      .map((vid, idx) => ({ vid, idx }))
+                      .filter(({ vid, idx }) => vid.url && `视频${idx + 1}`.includes(mentionQuery))
+                      .map(({ idx }) => (
+                        <button
+                          key={`vid-${idx}`}
+                          type="button"
+                          onClick={() => insertMention(idx, "视频")}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
+                        >
+                          <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0 bg-zinc-200 flex items-center justify-center">
+                            <svg className="h-5 w-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                            视频 {idx + 1}
+                          </span>
+                        </button>
+                      ))}
+                    {(mentionFilter === "全部" || mentionFilter === "音频") && audios
+                      .map((aud, idx) => ({ aud, idx }))
+                      .filter(({ aud, idx }) => aud.url && `音频${idx + 1}`.includes(mentionQuery))
+                      .map(({ idx }) => (
+                        <button
+                          key={`aud-${idx}`}
+                          type="button"
+                          onClick={() => insertMention(idx, "音频")}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-left"
+                        >
+                          <div className="relative w-10 h-10 rounded overflow-hidden flex-shrink-0 bg-zinc-200 flex items-center justify-center">
+                            <svg className="h-5 w-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                          </div>
+                          <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                            音频 {idx + 1}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
                 </div>
               )}
             </div>
