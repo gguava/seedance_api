@@ -19,6 +19,7 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [taskStatus, setTaskStatus] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionCursorPos, setMentionCursorPos] = useState(0);
@@ -34,8 +35,8 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           setTaskStatus(data.status);
-          if (data.status === "succeeded" || data.status === "failed" || data.status === "cancelled" || data.status === "expired") {
-            // 任务结束，停止轮询
+          if (data.videoUrl) {
+            setVideoUrl(data.videoUrl);
           }
         }
       } catch (err) {
@@ -199,6 +200,7 @@ export default function Home() {
         const data = await response.json();
         setTaskId(data.taskId);
         setTaskStatus("queued");
+        setVideoUrl(null);
         alert(`提交成功！任务ID: ${data.taskId}`);
       } else {
         const error = await response.json();
@@ -435,6 +437,14 @@ export default function Home() {
                      taskStatus === "expired" ? "已超时" : taskStatus}
                   </span>
                 </div>
+                {videoUrl && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">视频地址:</span>
+                    <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">
+                      {videoUrl}
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </div>
