@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     const response = await fetch(`${SEEDANCE_API_URL}/${taskId}`, {
       method: "GET",
       headers: {
+        "Content-Type": "application/json",
         "Authorization": `Bearer ${SEEDANCE_API_KEY}`,
       },
     });
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
       success: true,
       taskId: result.id,
       status: result.status,
-      videoUrl: result.content?.[0]?.video_url || null,
+      videoUrl: result.content?.video_url || null,
       error: result.error || null,
     });
   } catch (error) {
