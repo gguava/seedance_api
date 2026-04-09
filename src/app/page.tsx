@@ -36,6 +36,7 @@ export default function Home() {
   );
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState(11);
+  const [ratio, setRatio] = useState("9:16");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [taskStatus, setTaskStatus] = useState<string | null>(null);
@@ -361,7 +362,7 @@ export default function Home() {
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, imageUrls, videoUrls, audioUrls, duration }),
+        body: JSON.stringify({ description, imageUrls, videoUrls, audioUrls, duration, ratio }),
       });
 
       if (response.ok) {
@@ -660,23 +661,43 @@ export default function Home() {
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="duration"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                时长（秒）
-              </label>
-              <input
-                type="number"
-                id="duration"
-                value={duration}
-                onChange={(e) => setDuration(Math.max(4, Math.min(15, parseInt(e.target.value) || 11)))}
-                min={4}
-                max={15}
-                className="mt-1 block w-full rounded-lg border border-zinc-300 px-4 py-2.5 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              />
-              <p className="mt-1 text-xs text-zinc-500">Seedance 2.0 支持 4-15 秒</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="duration"
+                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  时长（秒）
+                </label>
+                <input
+                  type="number"
+                  id="duration"
+                  value={duration}
+                  onChange={(e) => setDuration(Math.max(4, Math.min(15, parseInt(e.target.value) || 11)))}
+                  min={4}
+                  max={15}
+                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-4 py-2.5 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+                <p className="mt-1 text-xs text-zinc-500">4-15 秒</p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="ratio"
+                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  视频比例
+                </label>
+                <select
+                  id="ratio"
+                  value={ratio}
+                  onChange={(e) => setRatio(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-4 py-2.5 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                >
+                  <option value="9:16">9:16 (竖版)</option>
+                  <option value="16:9">16:9 (横版)</option>
+                </select>
+              </div>
             </div>
 
             <div className="relative">

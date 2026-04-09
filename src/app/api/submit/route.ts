@@ -47,16 +47,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { description, imageUrls, videoUrls, audioUrls, duration } = await request.json();
+    const { description, imageUrls, videoUrls, audioUrls, duration, ratio } = await request.json();
 
     if (!description) {
       return NextResponse.json({ success: false, message: "描述不能为空" }, { status: 400 });
     }
 
-    // 解析描述中的 @图片N/@视频N/@音频N 引用
+    // 解析描述中的 @图片N/@视频N 引用（音频不需要引用，自动添加）
     const imageRefRegex = /@图片(\d+)/g;
     const videoRefRegex = /@视频(\d+)/g;
-    const audioRefRegex = /@音频(\d+)/g;
     const content: Array<{
       type: string;
       text?: string;
@@ -70,7 +69,6 @@ export async function POST(request: Request) {
     let textContent = description;
     const imageRefs: number[] = [];
     const videoRefs: number[] = [];
-    const audioRefs: number[] = [];
 
     let match;
     while ((match = imageRefRegex.exec(description)) !== null) {
@@ -83,12 +81,6 @@ export async function POST(request: Request) {
       const videoIndex = parseInt(match[1], 10) - 1;
       if (!videoRefs.includes(videoIndex)) {
         videoRefs.push(videoIndex);
-      }
-    }
-    while ((match = audioRefRegex.exec(description)) !== null) {
-      const audioIndex = parseInt(match[1], 10) - 1;
-      if (!audioRefs.includes(audioIndex)) {
-        audioRefs.push(audioIndex);
       }
     }
 
@@ -129,39 +121,42 @@ export async function POST(request: Request) {
       }
     }
 
-    // 第四部分：引用的音频（按引用顺序）
+    // 第四部分：音频（如果有上传，自动添加作为参考音频）
     const addedAudios = new Set<number>();
-    for (const idx of audioRefs) {
-      if (idx >= 0 && idx < audioUrls.length && !addedAudios.has(idx)) {
-        content.push({
-          type: "audio_url",
-          audio_url: {
-            url: audioUrls[idx],
-          },
-          role: "reference_audio",
-        });
-        addedAudios.add(idx);
+    if (audioUrls && audioUrls.length > 0) {
+      // 验证：音频不可单独使用，至少需要1个参考视频或图片
+      const hasImageOrVideo = imageRefs.length > 0 || videoRefs.length > 0 || (videoUrls && videoUrls.length > 0);
+      if (!hasImageOrVideo) {
+        return NextResponse.json(
+          { success: false, message: "音频不可单独输入，应至少包含1个参考视频或图片" },
+          { status: 400 }
+        );
+      }
+
+      // 自动添加所有上传的音频
+      for (let i = 0; i < audioUrls.length; i++) {
+        if (!addedAudios.has(i)) {
+          content.push({
+            type: "audio_url",
+            audio_url: {
+              url: audioUrls[i],
+            },
+            role: "reference_audio",
+          });
+          addedAudios.add(i);
+        }
       }
     }
 
-    // 验证：音频不可单独使用，至少需要1个参考视频或图片
-    const hasImageOrVideo = imageRefs.length > 0 || videoRefs.length > 0;
-    if (audioRefs.length > 0 && !hasImageOrVideo) {
-      return NextResponse.json(
-        { success: false, message: "音频不可单独输入，应至少包含1个参考视频或图片" },
-        { status: 400 }
-      );
-    }
-
     // 验证音频数量（最多3个）
-    if (audioRefs.length > 3) {
+    if (audioUrls && audioUrls.length > 3) {
       return NextResponse.json(
         { success: false, message: "音频最多支持3个" },
         { status: 400 }
       );
     }
 
-    // 验证视频数量（最多3个，但用户要求1个）
+    // 验证视频数量（最多3个）
     if (videoRefs.length > 3) {
       return NextResponse.json(
         { success: false, message: "视频最多支持3个" },
@@ -169,11 +164,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // 视频比例：默认 9:16
+    const videoRatio = ratio || "9:16";
+
     const body = {
       model: "doubao-seedance-2-0-260128",
       content,
       generate_audio: true,
-      ratio: "16:9",
+      ratio: videoRatio,
       duration: duration || 11,
       watermark: false,
     };
