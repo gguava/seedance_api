@@ -47,25 +47,48 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { description, imageUrls, duration } = await request.json();
+    const { description, imageUrls, videoUrls, audioUrls, duration } = await request.json();
 
     if (!description) {
       return NextResponse.json({ success: false, message: "描述不能为空" }, { status: 400 });
     }
 
-    // 解析描述中的 @图片N 引用
+    // 解析描述中的 @图片N/@视频N/@音频N 引用
     const imageRefRegex = /@图片(\d+)/g;
-    const content: Array<{ type: string; text?: string; image_url?: { url: string }; role?: string }> = [];
+    const videoRefRegex = /@视频(\d+)/g;
+    const audioRefRegex = /@音频(\d+)/g;
+    const content: Array<{
+      type: string;
+      text?: string;
+      image_url?: { url: string };
+      video_url?: { url: string };
+      audio_url?: { url: string };
+      role?: string;
+    }> = [];
 
     // 提取描述文本
     let textContent = description;
     const imageRefs: number[] = [];
+    const videoRefs: number[] = [];
+    const audioRefs: number[] = [];
 
     let match;
     while ((match = imageRefRegex.exec(description)) !== null) {
       const imageIndex = parseInt(match[1], 10) - 1;
       if (!imageRefs.includes(imageIndex)) {
         imageRefs.push(imageIndex);
+      }
+    }
+    while ((match = videoRefRegex.exec(description)) !== null) {
+      const videoIndex = parseInt(match[1], 10) - 1;
+      if (!videoRefs.includes(videoIndex)) {
+        videoRefs.push(videoIndex);
+      }
+    }
+    while ((match = audioRefRegex.exec(description)) !== null) {
+      const audioIndex = parseInt(match[1], 10) - 1;
+      if (!audioRefs.includes(audioIndex)) {
+        audioRefs.push(audioIndex);
       }
     }
 
@@ -89,6 +112,61 @@ export async function POST(request: Request) {
         });
         addedImages.add(idx);
       }
+    }
+
+    // 第三部分：引用的视频（按引用顺序）
+    const addedVideos = new Set<number>();
+    for (const idx of videoRefs) {
+      if (idx >= 0 && idx < videoUrls.length && !addedVideos.has(idx)) {
+        content.push({
+          type: "video_url",
+          video_url: {
+            url: videoUrls[idx],
+          },
+          role: "reference_video",
+        });
+        addedVideos.add(idx);
+      }
+    }
+
+    // 第四部分：引用的音频（按引用顺序）
+    const addedAudios = new Set<number>();
+    for (const idx of audioRefs) {
+      if (idx >= 0 && idx < audioUrls.length && !addedAudios.has(idx)) {
+        content.push({
+          type: "audio_url",
+          audio_url: {
+            url: audioUrls[idx],
+          },
+          role: "reference_audio",
+        });
+        addedAudios.add(idx);
+      }
+    }
+
+    // 验证：音频不可单独使用，至少需要1个参考视频或图片
+    const hasImageOrVideo = imageRefs.length > 0 || videoRefs.length > 0;
+    if (audioRefs.length > 0 && !hasImageOrVideo) {
+      return NextResponse.json(
+        { success: false, message: "音频不可单独输入，应至少包含1个参考视频或图片" },
+        { status: 400 }
+      );
+    }
+
+    // 验证音频数量（最多3个）
+    if (audioRefs.length > 3) {
+      return NextResponse.json(
+        { success: false, message: "音频最多支持3个" },
+        { status: 400 }
+      );
+    }
+
+    // 验证视频数量（最多3个，但用户要求1个）
+    if (videoRefs.length > 3) {
+      return NextResponse.json(
+        { success: false, message: "视频最多支持3个" },
+        { status: 400 }
+      );
     }
 
     const body = {
