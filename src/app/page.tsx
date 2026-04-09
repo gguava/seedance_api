@@ -86,23 +86,24 @@ export default function Home() {
           return newImages;
         });
       } else {
-        // 上传失败，清除该槽位
+        const errorData = await response.json().catch(() => ({ message: "未知错误" }));
         setImages((prev) => {
           const newImages = [...prev];
           URL.revokeObjectURL(newImages[index].preview);
           newImages[index] = { file: null, preview: "", url: "", uploading: false };
           return newImages;
         });
-        alert("图片上传失败");
+        alert(`图片上传失败: ${errorData.message}`);
       }
-    } catch {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "网络错误";
       setImages((prev) => {
         const newImages = [...prev];
         URL.revokeObjectURL(newImages[index].preview);
         newImages[index] = { file: null, preview: "", url: "", uploading: false };
         return newImages;
       });
-      alert("图片上传失败");
+      alert(`图片上传失败: ${errorMessage}`);
     }
   }, []);
 
