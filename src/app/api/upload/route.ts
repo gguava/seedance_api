@@ -15,7 +15,8 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    // 使用 /tmp 目录，确保有写入权限
+    const uploadDir = "/tmp/seedance-uploads";
 
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
@@ -26,7 +27,8 @@ export async function POST(request: Request) {
 
     await writeFile(filepath, buffer);
 
-    const url = `/uploads/${filename}`;
+    // 返回完整URL路径
+    const url = `/api/uploads/${filename}`;
 
     return NextResponse.json({ success: true, url });
   } catch (error) {
