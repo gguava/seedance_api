@@ -34,6 +34,8 @@ export default function Home() {
   const [audios, setAudios] = useState<UploadedAudio[]>(
     Array(3).fill(null).map(() => ({ file: null, preview: "", url: "", uploading: false }))
   );
+  const [firstFrameIndex, setFirstFrameIndex] = useState<number | null>(null);
+  const [lastFrameIndex, setLastFrameIndex] = useState<number | null>(null);
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState(11);
   const [ratio, setRatio] = useState("9:16");
@@ -367,7 +369,7 @@ export default function Home() {
       const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, imageUrls, videoUrls, audioUrls, duration, ratio }),
+        body: JSON.stringify({ description, imageUrls, videoUrls, audioUrls, duration, ratio, firstFrameIndex, lastFrameIndex }),
       });
 
       if (response.ok) {
@@ -500,21 +502,41 @@ export default function Home() {
                       </div>
                     )}
                     {img.url && (
-                      <div className="flex gap-1">
-                        <input
-                          type="text"
-                          readOnly
-                          value={typeof window !== 'undefined' ? window.location.origin + img.url : img.url}
-                          className="flex-1 text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 truncate"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => copyUrl(typeof window !== 'undefined' ? window.location.origin + img.url : img.url)}
-                          className="px-2 py-1 text-xs bg-zinc-900 text-white rounded hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                        >
-                          复制
-                        </button>
-                      </div>
+                      <>
+                        <div className="flex gap-1">
+                          <input
+                            type="text"
+                            readOnly
+                            value={typeof window !== 'undefined' ? window.location.origin + img.url : img.url}
+                            className="flex-1 text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 truncate"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => copyUrl(typeof window !== 'undefined' ? window.location.origin + img.url : img.url)}
+                            className="px-2 py-1 text-xs bg-zinc-900 text-white rounded hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                          >
+                            复制
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1">
+                          <select
+                            value={firstFrameIndex === index ? index : ""}
+                            onChange={(e) => setFirstFrameIndex(e.target.value === "" ? null : parseInt(e.target.value))}
+                            className="text-xs px-1 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                          >
+                            <option value="">首帧</option>
+                            <option value={index}>设为首帧</option>
+                          </select>
+                          <select
+                            value={lastFrameIndex === index ? index : ""}
+                            onChange={(e) => setLastFrameIndex(e.target.value === "" ? null : parseInt(e.target.value))}
+                            className="text-xs px-1 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                          >
+                            <option value="">尾帧</option>
+                            <option value={index}>设为尾帧</option>
+                          </select>
+                        </div>
+                      </>
                     )}
                   </div>
                 ))}

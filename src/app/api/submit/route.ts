@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { description, imageUrls, videoUrls, audioUrls, duration, ratio } = await request.json();
+    const { description, imageUrls, videoUrls, audioUrls, duration, ratio, firstFrameIndex, lastFrameIndex } = await request.json();
 
     if (!description) {
       return NextResponse.json({ success: false, message: "描述不能为空" }, { status: 400 });
@@ -91,7 +91,29 @@ export async function POST(request: Request) {
       text: textContent,
     });
 
-    // 第二部分：引用的图片（按引用顺序）
+    // 第二部分：首帧图片
+    if (firstFrameIndex !== null && firstFrameIndex >= 0 && firstFrameIndex < imageUrls.length) {
+      content.push({
+        type: "image_url",
+        image_url: {
+          url: imageUrls[firstFrameIndex],
+        },
+        role: "first_frame",
+      });
+    }
+
+    // 第三部分：尾帧图片
+    if (lastFrameIndex !== null && lastFrameIndex >= 0 && lastFrameIndex < imageUrls.length) {
+      content.push({
+        type: "image_url",
+        image_url: {
+          url: imageUrls[lastFrameIndex],
+        },
+        role: "last_frame",
+      });
+    }
+
+    // 第四部分：引用的图片（按引用顺序）
     const addedImages = new Set<number>();
     for (const idx of imageRefs) {
       if (idx >= 0 && idx < imageUrls.length && !addedImages.has(idx)) {
