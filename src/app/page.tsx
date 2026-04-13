@@ -34,6 +34,9 @@ export default function Home() {
   const [audios, setAudios] = useState<UploadedAudio[]>(
     Array(3).fill(null).map(() => ({ file: null, preview: "", url: "", uploading: false }))
   );
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  const [uploadedVideoUrls, setUploadedVideoUrls] = useState<string[]>([]);
+  const [uploadedAudioUrls, setUploadedAudioUrls] = useState<string[]>([]);
   const [firstFrameIndex, setFirstFrameIndex] = useState<number | null>(null);
   const [lastFrameIndex, setLastFrameIndex] = useState<number | null>(null);
   const [description, setDescription] = useState("");
@@ -111,6 +114,7 @@ export default function Home() {
           newImages[index].uploading = false;
           return newImages;
         });
+        setUploadedImageUrls((prev) => [...prev, data.url]);
       } else {
         const errorData = await response.json().catch(() => ({ message: "未知错误" }));
         setImages((prev) => {
@@ -149,6 +153,8 @@ export default function Home() {
       }
       return newImages;
     });
+    // 同步清除 uploadedImageUrls 中对应的项
+    setUploadedImageUrls((prev) => prev.slice(0, index));
   }, []);
 
   const copyUrl = useCallback((url: string) => {
@@ -361,9 +367,13 @@ export default function Home() {
     setIsSubmitting(true);
     setTaskStatus(null);
 
-    const imageUrls = images.filter(img => img.url).map(img => window.location.origin + img.url);
+    const imageUrls = uploadedImageUrls.map(url => window.location.origin + url);
     const videoUrls = videos.filter(vid => vid.url).map(vid => window.location.origin + vid.url);
     const audioUrls = audios.filter(aud => aud.url).map(aud => window.location.origin + aud.url);
+
+    console.log("imageUrls:", imageUrls);
+    console.log("firstFrameIndex:", firstFrameIndex);
+    console.log("lastFrameIndex:", lastFrameIndex);
 
     try {
       const response = await fetch("/api/submit", {
